@@ -1,6 +1,10 @@
 const redux = require("redux");
 const produce = require("immer").produce;
-const createdStore = redux.createdStore;
+const logger = require("redux-logger");
+const thunkMiddleWare = require("redux-thunk").default;
+const axios = require("axios");
+const createdStore = redux.createStore;
+const applyMiddleWare = redux.applyMiddleware;
 
 const FETCH_USERS_REQUESTED = "FETCH_USERS_REQUESTED";
 const FETCH_USERS_SUCCEEDED = "FETCH_USERS_SUCCEEDED";
@@ -52,8 +56,25 @@ const userReducer = (state = usersState, action) => {
 };
 
 //execution
-const store = createdStore(userReducer);
+const userUrl = "https://jsonplaceholder.typicode.com/users";
 
-// store.subscribe(() => console.log(store.getState()));
+const fetchRequest = () => {
+  return function (dispatch) {
+    dispatch(fetchUserRequest());
+    axios
+      .get(userUrl)
+      .then((res) => {
+        const users = res.data.map((g) => g.id);
+        dispatch(fetchUserSuccedeed(users));
+      })
+      .catch((e) => {
+        dispatch(fetchUserFailed(e.message));
+      });
+  };
+};
 
-// store.dispatch(fetchUserRequest);
+const store = createdStore(userReducer, applyMiddleWare(thunkMiddleWare));
+
+store.subscribe(() => console.log(store.getState()));
+
+store.dispatch(fetchRequest());
